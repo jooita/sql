@@ -3,7 +3,7 @@
 #mysql connector/odbc connection parameters
 #https://dev.mysql.com/doc/connector-odbc/en/connector-odbc-configuration-connection-parameters.html
 
-go test -v -dsn MySql -user root -passwd ketilinux -table odbctest
+go test -v -dsn MySql -user root -passwd $passwd -table odbctest
 
 cd mysql
 go test -v -dsn MySql -table odbctest
