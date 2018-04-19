@@ -1,13 +1,34 @@
-package test
+package dataframe
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
+	"os"
 	"testing"
 
-	d "github.com/jooita/sql/dataframe"
 	_ "github.com/jooita/sql/driver"
 )
+
+var (
+	dsn   = flag.String("dsn", "", "dsn")
+	table = flag.String("table", "", "table name")
+)
+
+func init() {
+	flag.Parse()
+
+	required := []string{"dsn", "table"}
+	seen := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) { seen[f.Name] = true })
+	for _, req := range required {
+		if !seen[req] {
+			// or possibly use `log.Fatalf` instead of:
+			fmt.Fprintf(os.Stderr, "missing required -%s argument(flag)\n", req)
+			os.Exit(2) // the same exit code flag.Parse uses
+		}
+	}
+}
 
 func TestBulkInsert_Integer(t *testing.T) {
 	conn := fmt.Sprintf("DSN=%s;", *dsn)
@@ -23,12 +44,12 @@ func TestBulkInsert_Integer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	df, _ := d.NewDataframe().ReadODBC(fmt.Sprintf("DSN=%s", *dsn), *table)
+	df, _ := NewDataframe().ReadODBC(fmt.Sprintf("DSN=%s", *dsn), *table)
 	df.AddRow([]interface{}{1, 2, 3})
 	df.AddRow([]interface{}{123122, 2, 123211232})
 	df.AddRow([]interface{}{-3, -2, -123211232})
 
-	err = df.WriteODBC(fmt.Sprintf("DSN=%s", *dsn), *table, d.Append)
+	err = df.WriteODBC(fmt.Sprintf("DSN=%s", *dsn), *table, Append)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,11 +93,11 @@ func TestBulkInsert_Real(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	df, _ := d.NewDataframe().ReadODBC(fmt.Sprintf("DSN=%s", *dsn), *table)
+	df, _ := NewDataframe().ReadODBC(fmt.Sprintf("DSN=%s", *dsn), *table)
 	df.AddRow([]interface{}{4.4, 5.5, 6.6, 7.7, 8.8, 9.9})
 	df.AddRow([]interface{}{12.1234567, 12.1234567, 99.99, 999.999, 9999.9999, 999.999})
 
-	err = df.WriteODBC(fmt.Sprintf("DSN=%s", *dsn), *table, d.Append)
+	err = df.WriteODBC(fmt.Sprintf("DSN=%s", *dsn), *table, Append)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,14 +136,14 @@ func TestBulkInsert_String(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	df, _ := d.NewDataframe().ReadODBC(fmt.Sprintf("DSN=%s", *dsn), *table)
+	df, _ := NewDataframe().ReadODBC(fmt.Sprintf("DSN=%s", *dsn), *table)
 
 	df.AddRow([]interface{}{"a", "b", "c", "d"})
 	df.AddRow([]interface{}{"aa", "bb", "cc", "dd"})
 	df.AddRow([]interface{}{"aaaaaaaaaaaaaaaaaaa", "bbbbbbbbb", "cc", "ddddd"})
 	df.AddRow([]interface{}{"aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cc", "ddddd"})
 
-	err = df.WriteODBC(fmt.Sprintf("DSN=%s", *dsn), *table, d.Append)
+	err = df.WriteODBC(fmt.Sprintf("DSN=%s", *dsn), *table, Append)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +169,7 @@ func TestBulkInsert_String(t *testing.T) {
 }
 
 func TestBulkInsert_ReadODBC(t *testing.T) {
-	df, _ := d.NewDataframe().ReadODBC(fmt.Sprintf("DSN=%s", *dsn), *table)
+	df, _ := NewDataframe().ReadODBC(fmt.Sprintf("DSN=%s", *dsn), *table)
 	results, err := df.Print()
 	if err != nil {
 		t.Fatal(err)

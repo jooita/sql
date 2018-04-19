@@ -1,7 +1,11 @@
 package dataframe
 
-import "fmt"
-import "github.com/jooita/sql/odbc"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/jooita/sql/odbc"
+)
 
 type mode int
 
@@ -26,8 +30,17 @@ func (df *DataFrame) WriteODBC(dsn, table string, savemode mode) error {
 		return err
 	}
 
-	switch savemode {
-	case Append:
+	stmt, err := conn.ExecDirect(fmt.Sprintf("Select * from %s", table))
+	if err != nil {
+		return err
+	}
+
+	numrows, err := stmt.NumRows()
+	if err != nil {
+		return err
+	}
+
+	if numrows == 0 {
 		err = df.columnBinding(conn, table)
 		if err != nil {
 			return err
@@ -37,20 +50,16 @@ func (df *DataFrame) WriteODBC(dsn, table string, savemode mode) error {
 			return err
 		}
 		return nil
+	}
+
+	switch savemode {
+	case Append:
+		break
 	case Overwrite:
 		_, err = conn.ExecDirect(fmt.Sprintf("Delete from %s", table))
 		if err != nil {
 			return err
 		}
-		err = df.columnBinding(conn, table)
-		if err != nil {
-			return err
-		}
-		err = conn.Close()
-		if err != nil {
-			return err
-		}
-		return nil
 	case Ignore:
 		stmt, err := conn.ExecDirect(fmt.Sprintf("Select * from %s", table))
 		if err != nil {
@@ -64,19 +73,28 @@ func (df *DataFrame) WriteODBC(dsn, table string, savemode mode) error {
 		if numrows != 0 {
 			return nil
 		}
-
-		err = df.columnBinding(conn, table)
-		if err != nil {
-			return err
-		}
-		err = conn.Close()
-		if err != nil {
-			return err
-		}
-		return nil
 	case ErrorIfExists:
+		stmt, err := conn.ExecDirect(fmt.Sprintf("Select * from %s", table))
+		if err != nil {
+			return err
+		}
+		numrows, err := stmt.NumRows()
+		if err != nil {
+			return err
+		}
 
+		if numrows != 0 {
+			return errors.New(fmt.Sprintf("ErrorIfExists. number of rows : %d\n", numrows))
+		}
 	}
 
+	err = df.columnBinding(conn, table)
+	if err != nil {
+		return err
+	}
+	err = conn.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }

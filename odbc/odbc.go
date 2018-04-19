@@ -83,7 +83,8 @@ func (conn *Connection) ExecDirect(sql string) (stmt *Statement, err error) {
 		return nil, err
 	}
 	wsql := StringToUTF16Ptr(sql)
-	ret := api.SQLExecDirect(api.SQLHSTMT(stmt.handle), (*api.SQLWCHAR)(unsafe.Pointer(wsql)), api.SQL_NTS)
+	//ret := api.SQLExecDirect(api.SQLHSTMT(stmt.handle), (*api.SQLWCHAR)(unsafe.Pointer(wsql)), api.SQL_NTS)
+	ret := api.SQLExecDirect(api.SQLHSTMT(stmt.handle), (*api.SQLWCHAR)(unsafe.Pointer(wsql)), api.SQLINTEGER(len(sql)))
 	if IsError(ret) {
 		err := NewError("SQLExecDirect", api.SQLHSTMT(stmt.handle))
 		stmt.Close()
